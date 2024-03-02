@@ -4,18 +4,21 @@ from ev3dev2.sensor import INPUT_1
 from ev3dev2.sensor.lego import GyroSensor
 from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
+import time
+
+
 #outputA is left motor
 #outputB is right motor
 
 
 class MyWheel(Wheel):
     def __init__(self):
-        Wheel.__init__(self, 70, 35) #wheel diameter is 70mm and 35 width
+        Wheel.__init__(self, 68, 35) #wheel diameter is 70mm and 35 width
         
 left_wheel=OUTPUT_A
 right_wheel=OUTPUT_D
 med_motor=OUTPUT_B
-wheel_distance=130.5
+wheel_distance=143
 mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
 
 #Move forwards a distance (cm)
@@ -54,7 +57,7 @@ def Rotate_CCW(angle):
     #motors.stop()
     
     mdiff.odometry_start(theta_degrees_start=0.0)
-    mdiff.turn_degrees(SpeedRPM(30),-(angle))
+    mdiff.turn_degrees(SpeedRPM(30),(angle))
     mdiff.odometry_stop()
     
 def moveMed(sth):
@@ -62,8 +65,7 @@ def moveMed(sth):
     medium_motor.on_for_seconds(-30,5)
 
 
-#move
-
-#Forward(20)
-#Rotate_CCW(180)
-#moveMed(3)
+#Forward(30)
+#Rotate_CCW(90)
+#time.sleep(2)
+#Forward(240)
