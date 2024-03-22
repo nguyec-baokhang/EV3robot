@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from ev3dev2.motor import MediumMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C ,OUTPUT_D,SpeedPercent, MoveTank, MoveDifferential, SpeedRPM
 from ev3dev2.sensor import INPUT_1, INPUT_2, INPUT_3, INPUT_4
-from ev3dev2.sensor.lego import ColorSensor
+from ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor
 from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
 import time
-
+import os
 
 #outputA is left motor
 #outputB is right motor
@@ -36,18 +36,23 @@ def Rotate_CCW(angle):
     mdiff.turn_degrees(SpeedRPM(30),(angle))
     mdiff.odometry_stop()
  
+def obstacle_detect():
+    us = UltrasonicSensor()
+    distance = us.distance_inches
+    return distance
+
 #not finished for forklift !!!!!    
 def moveMed(sth):
     medium_motor = MediumMotor(med_motor)
     medium_motor.on_for_seconds(-30,5)
 
 #read color sensor in general 
-LEFT_COLOR_SENSOR=INPUT_1
+LEFT_COLOR_SENSOR=INPUT_4
 RIGHT_COLOR_SENSOR=INPUT_2
 def readColor(input=RIGHT_COLOR_SENSOR):
     col_s= ColorSensor(input)
     color=col_s.color
-    print(color)
+    #print(color)
     return color
 
 white=0
@@ -56,7 +61,7 @@ not_bnw=2
 #read only black and white color
 def readBnW(input=RIGHT_COLOR_SENSOR):
     color=readColor(input)
-    if not color==1 or not color==6:
+    if not color==1 and not color==6:
         return not_bnw
     else:
         if color==1:
@@ -70,4 +75,10 @@ barcodes=[  [black,white,white,white],      #type 1
             [black,white,white,black]]      #type 4
 
 while True:
-    print(readBnW(RIGHT_COLOR_SENSOR))        
+    time.sleep(0.5)
+    #os.system('cls')
+    print("------\nright sensor ",readBnW(RIGHT_COLOR_SENSOR))       
+    print("left sensor ",readBnW(LEFT_COLOR_SENSOR)) 
+    
+
+    
