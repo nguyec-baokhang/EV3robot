@@ -79,6 +79,7 @@ while True:
     #os.system('cls')
     print("------\nright sensor ",readBnW(RIGHT_COLOR_SENSOR))       
     print("left sensor ",readBnW(LEFT_COLOR_SENSOR)) 
+    print("distance ",obstacle_detect)
     
 
     
