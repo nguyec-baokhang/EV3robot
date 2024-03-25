@@ -21,9 +21,31 @@ med_motor=OUTPUT_B
 wheel_distance=143
 mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
 
+isPicking=False
+
 #Move forwards a distance (cm)
+#Stop if there is an object 12.7 cm (5 inches) infront
 def Forward(distance):
-    mdiff.on_for_distance(SpeedRPM(-30),distance*10)
+    #dist_moved=0.0
+    #step=0.5
+    #while dist_moved>=distance or (obstacle_detect()>12.7 and not isPicking):
+    #    mdiff.on_for_distance(SpeedRPM(-30),step*10)
+    #    dist_moved+=step
+    
+    mdiff.odometry_start(theta_degrees_start=90.0,x_pos_start=0.0,y_pos_start=0.0) 
+    mdiff.on_to_coordinates(SpeedRPM(-30), 0, distance*10, brake=True, block=False) #make sure block is False
+    print("is Moving")
+    
+    while mdiff.y<distance*10:
+        print("distance in front: ",obstacle_detect())
+        if obstacle_detect()<=12.7:
+            mdiff.odometry_stop()
+            return
+        
+    mdiff.wait()
+    mdiff.odometry_stop()
+    return
+    
   
 #Move backwards a distance (cm)  
 def Reverse(distance):
@@ -31,14 +53,13 @@ def Reverse(distance):
 
 #Rotate counter clock wise an angle (degree)
 def Rotate_CCW(angle):
-   
     mdiff.odometry_start(theta_degrees_start=0.0)
     mdiff.turn_degrees(SpeedRPM(30),(angle))
     mdiff.odometry_stop()
  
 def obstacle_detect():
     us = UltrasonicSensor()
-    distance = us.distance_inches
+    distance = us.distance_centimeters
     return distance
 
 #not finished for forklift !!!!!    
@@ -69,17 +90,9 @@ def readBnW(input=RIGHT_COLOR_SENSOR):
         else:
             return white
         
-barcodes=[  [black,white,white,white],      #type 1
-            [black,white,black,white],      #type 2
-            [black,black,white,white],      #type 3
-            [black,white,white,black]]      #type 4
+barcodes=[  [[black,white,white,white],1],      #type 1
+            [[black,white,black,white],2],      #type 2
+            [[black,black,white,white],3],      #type 3
+            [[black,white,white,black],4]]      #type 4
 
-while True:
-    time.sleep(0.5)
-    #os.system('cls')
-    print("------\nright sensor ",readBnW(RIGHT_COLOR_SENSOR))       
-    print("left sensor ",readBnW(LEFT_COLOR_SENSOR)) 
-    print("distance ",obstacle_detect())
-    
-
-    
+Forward(100)
