@@ -33,16 +33,15 @@ def Forward(distance):
     #    dist_moved+=step
     
     mdiff.odometry_start(theta_degrees_start=90.0,x_pos_start=0.0,y_pos_start=0.0) 
-    mdiff.on_to_coordinates(SpeedRPM(-30), 0, distance*10, brake=True, block=False) #make sure block is False
+    mdiff.on_for_distance(SpeedRPM(-30), distance*10, brake=True, block=False) #make sure block is False
     print("is Moving")
     
-    while mdiff.y<distance*10:
+    while mdiff.is_running:
         print("distance in front: ",obstacle_detect())
         if obstacle_detect()<=12.7:
-            mdiff.odometry_stop()
-            return
-        
-    mdiff.wait()
+            print("stop")
+            break
+    mdiff.stop()
     mdiff.odometry_stop()
     return
     
@@ -58,7 +57,7 @@ def Rotate_CCW(angle):
     mdiff.odometry_stop()
  
 def obstacle_detect():
-    us = UltrasonicSensor()
+    us = UltrasonicSensor(INPUT_3)
     distance = us.distance_centimeters
     return distance
 
