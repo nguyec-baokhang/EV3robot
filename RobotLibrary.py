@@ -4,6 +4,8 @@ from ev3dev2.sensor import INPUT_1, INPUT_2, INPUT_3, INPUT_4
 from ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor
 from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
+from ev3dev2.sound import Sound
+
 import time
 import os
 
@@ -31,11 +33,9 @@ def Forward(distance):
     #while dist_moved>=distance or (obstacle_detect()>12.7 and not isPicking):
     #    mdiff.on_for_distance(SpeedRPM(-30),step*10)
     #    dist_moved+=step
-    
-    mdiff.odometry_start(theta_degrees_start=90.0,x_pos_start=0.0,y_pos_start=0.0) 
+    mdiff.odometry_start() 
     mdiff.on_for_distance(SpeedRPM(-30), distance*10, brake=True, block=False) #make sure block is False
     print("is Moving")
-    
     while mdiff.is_running:
         print("distance in front: ",obstacle_detect())
         if obstacle_detect()<=12.7:
@@ -94,4 +94,4 @@ barcodes=[  [[black,white,white,white],1],      #type 1
             [[black,black,white,white],3],      #type 3
             [[black,white,white,black],4]]      #type 4
 
-Forward(100)
+Forward(200)
