@@ -34,7 +34,7 @@ def Forward(distance):
     
     while mdiff.is_running:
         print("distance in front: ",obstacle_detect())
-        if obstacle_detect()<=12.7:
+        if obstacle_detect()<=12.7: #and not isPicking
             print("stop")
             break
         
