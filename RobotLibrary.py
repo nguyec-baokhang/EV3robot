@@ -6,6 +6,7 @@ from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
 import time
 import os
+import numpy as np 
 
 #outputA is left motor
 #outputB is right motor
@@ -94,5 +95,23 @@ barcodes=[  [[black,white,white,white],1],      #type 1
             [[black,white,black,white],2],      #type 2
             [[black,black,white,white],3],      #type 3
             [[black,white,white,black],4]]      #type 4
+
+def Placement_identification(input = RIGHT_COLOR_SENSOR):
+    i = 0
+    color_read = [0,0]
+    while i < 4:
+        color = readBnW(input)
+        color_read.append(color)
+    
+    (rows,cols) = np.size(barcodes)
+    
+    for i in range (cols):
+        count = 0
+        for j in range (rows):
+            if  rows[j] == color[j]:
+                count += 1
+                if count  == 4: 
+                    color_read = barcodes[rows,cols]
+            
 
 Forward(100)
