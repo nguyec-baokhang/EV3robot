@@ -6,6 +6,7 @@ from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
 import time
 import os
+import numpy as np
 
 #outputA is left motor
 #outputB is right motor
@@ -52,11 +53,11 @@ def Reverse(distance):
     mdiff.on_for_distance(SpeedRPM(30),distance*10)
 
 #Rotate counter clock wise an angle (degree)
-def Rotate_CCW(angle):
+def Rotate_CCW(a):
     mdiff.odometry_start(theta_degrees_start=0.0)
-    mdiff.turn_degrees(SpeedRPM(30),(angle))
+    mdiff.turn_degrees(SpeedRPM(30),(a))
     mdiff.odometry_stop()
- 
+    angle+=a
 def obstacle_detect():
     us = UltrasonicSensor()
     distance = us.distance_centimeters
@@ -95,4 +96,33 @@ barcodes=[  [[black,white,white,white],1],      #type 1
             [[black,black,white,white],3],      #type 3
             [[black,white,white,black],4]]      #type 4
 
-Forward(100)
+shelf = [[[12,12],"A1"],       #A1 shelf
+         [[12,36],"A2"],       #A2 shelf
+         [[60,12],"B1"],       #B1 shelf
+         [[60,36],"B2"],       #B2 shelf
+         [[12,60],"C1"],       #C1 shelf
+         [[12,84],"C2"],       #C2 shelf
+         [[60,60],"D1"],       #D1 shelf
+         [[60,84],"D2"]]       #D2 shelf
+
+cp = [6,-6]
+angle = 90
+
+print(shelf[1][1])
+shelf_choice = input("Input the shelf: ")
+def moving_to_shelf(shelf_choice):
+    for i in range (len(shelf)):
+        if shelf_choice == shelf[i][1]: 
+            distance_y = (shelf[i][0][1]-cp[1])*2.54
+            distance_x = (shelf[i][0][0]*2.54-cp[0])*2.54
+            Forward(distance_y)
+            Rotate_CCW(90)
+            Forward(distance_x)
+            cp[0] = shelf[i][0][0] 
+            cp[1] = shelf[i][0][1]
+            print(distance_x)
+            print(distance_y)
+
+
+moving_to_shelf(shelf_choice)
+
