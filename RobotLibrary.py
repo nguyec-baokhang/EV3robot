@@ -111,7 +111,5 @@ def Placement_identification(input = RIGHT_COLOR_SENSOR):
             if  rows[j] == color[j]:
                 count += 1
                 if count  == 4: 
-                    color_read = barcodes[rows,cols]
-            
-
-Forward(100)
+                    break
+        break
