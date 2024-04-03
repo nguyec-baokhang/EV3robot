@@ -118,11 +118,7 @@ def moving_to_shelf(shelf_choice):
             Forward(distance_y)
             Rotate_CCW(90)
             Forward(distance_x)
-            cp[0] = shelf[i][0][0] 
-            cp[1] = shelf[i][0][1]
-            print(distance_x)
-            print(distance_y)
-
+            
 
 moving_to_shelf(shelf_choice)
 
