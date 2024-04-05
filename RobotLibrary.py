@@ -9,6 +9,8 @@ from ev3dev2.sound import Sound
 import time
 import math
 
+def inch_to_cm(inch):
+    return inch*2.54
 #outputA is left motor
 #outputB is right motor
 
@@ -25,13 +27,22 @@ mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
 
 isPicking=False
 
-current_x=0
-current_y=0
+current_x=inch_to_cm(6)
+current_y=inch_to_cm(-6)
 current_angle=90
+
+gyro=GyroSensor()
+gyro.reset()
+print("start calibrate")
+gyro.calibrate()
+print("done calibrate")
+
 def updatePos(distance):
     global current_x,current_y,current_angle
     current_x+=distance*math.cos(math.radians(current_angle))
     current_y+=distance*math.sin(math.radians(current_angle))
+    
+
 
 #Move forwards a distance (cm)
 #Stop if there is an object 12.7 cm (5 inches) infront
@@ -68,12 +79,17 @@ def clamp_angle(angle_deg):
 def Rotate_CCW(angle):
     global current_x,current_y,current_angle
     
-    mdiff.odometry_start(theta_degrees_start=0) 
-    mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
-    mdiff.odometry_stop()
+    #mdiff.odometry_start(theta_degrees_start=0) 
+    #mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
+    #mdiff.odometry_stop()
     
+    a=gyro.angle()
+    while ((gyro.angle()-a)<angle):
+        motors = MoveTank(OUTPUT_A,OUTPUT_B)
+        motors.on_for_rotations(SpeedRPM(20), SpeedRPM(-20), 0.1)#angle/ang_vel+0.3) 
     current_angle+=angle
-    current_angle=clamp_angle(current_angle)
+    current_angle=clamp_angle(current_angle)  
+    
     time.sleep(0.5)
     print('rotated angle:'+str(angle))
  
@@ -134,7 +150,8 @@ def readBarcode(input=RIGHT_COLOR_SENSOR):
         for i in range(4):
             color=readBnW(input)
             barcode_read.append(color)
-            mdiff.on_for_distance(SpeedRPM(-10), 1.27*10, brake=True, block=True)
+            #mdiff.on_for_distance(SpeedRPM(-10), 1.27*10, brake=True, block=True)
+            Forward(1.27)
     print(barcode_read)
     bc_type=getBarcodeType(barcode_read)
     return bc_type
@@ -157,7 +174,7 @@ def getBarcodeType(bc):
     
 def moveToXY(new_x,new_y):
     global current_x,current_y,current_angle
-    if (current_x!=0):
+    if (current_x!=inch_to_cm(6)):
         Rotate_CCW(180-current_angle)
         Forward(current_x)
     if (new_y>current_y):
@@ -187,7 +204,7 @@ def moveToXY(new_x,new_y):
 #Rotate_CCW(90)
 #Rotate_CCW(-90)
 moveForklift(-1)
-moveToXY(50,100)
+moveToXY(inch_to_cm(50),inch_to_cm(100))
 Rotate_CCW(-90-current_angle)
 obj_dist=obstacle_detect()
 obj_dist-=6.0
@@ -196,4 +213,4 @@ if obj_dist>50 or obj_dist<=0.0:
 Forward(obj_dist,picking=True)
 moveForklift(1)
 Reverse(obj_dist)
-moveToXY(0,0)
+moveToXY(inch_to_cm(6),inch_to_cm(-6))
