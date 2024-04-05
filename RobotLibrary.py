@@ -63,6 +63,16 @@ def obstacle_detect():
     distance = us.distance_centimeters
     return distance
 
+#1 is up
+#-1 is down  
+def moveForklift(direction):
+    #if direction==1:
+    #    say("picking object")
+    #elif direction==-1:
+    #    say("dropping object")
+    medium_motor = MediumMotor(med_motor)
+    medium_motor.on_for_seconds(-35*direction,8)
+
 #not finished for forklift !!!!!    
 def moveMed(sth):
     medium_motor = MediumMotor(med_motor)
@@ -110,15 +120,78 @@ angle = 90
 
 print(shelf[1][1])
 shelf_choice = input("Input the shelf: ")
-def moving_to_shelf(shelf_choice):
+box_choice = int(input("Input the box number: "))
+L_box = 36/6
+
+def moving_to_shelf_subtask1_(shelf_choice):
     for i in range (len(shelf)):
         if shelf_choice == shelf[i][1]: 
-            distance_y = (shelf[i][0][1]-cp[1])*2.54
-            distance_x = (shelf[i][0][0]*2.54-cp[0])*2.54
-            Forward(distance_y)
-            Rotate_CCW(90)
-            Forward(distance_x)
-            
+            if box_choice >= 1 and box_choice <7:
+                global distance_x
+                global distance_y
+                distance_y = (shelf[i][0][1]-cp[1])*2.54
+                distance_x = (box_choice*L_box+3)*2.54
+                current_x = distance_x + cp[0]
+                current_y = distance_y + cp[1]
+                Forward(distance_y)
+                Rotate_CCW(90)
+                Forward(distance_x)
+                time.sleep(5)
+                Forward(102*2.54-current_x)
+                Rotate_CCW(90)
+                Forward(distance_y*2.54)
+            else:
+                global distance_x
+                global distance_y
+                distance_y = (shelf[i][0][1]-cp[1]+12)*2.54
+                distance_x = (box_choice-7+3)*2.54
+                current_x = distance_x + cp[0]
+                current_y = distance_y + cp[1]
+                Forward(distance_y)
+                Rotate_CCW(90)
+                Forward(distance_x)
+                time.sleep(5)
+                Forward(102*2.54-current_x)
+                Rotate_CCW(90)
+                Forward(distance_y)
 
-moving_to_shelf(shelf_choice)
+def moving_back_subtask2():
+    Rotate_CCW(180)
+    Forward(distance_y)
+    Rotate_CCW(-90)
+    Forward((102-6)*2.54)
+    Rotate_CCW(-90)
+    Forward(distance_y)
+
+def subtask3_subtask4():
+    global color_read
+    color_read =  []
+    if box_choice > 1 and box_choice < 7:
+        distance_x = box_choice*L_box
+        Forward(distance_x)
+    else:
+        distance_x = (box_choice-12)
+        Forward(distance_x)
+
+    for i in range (2):
+        color = readBnW(input=ColorSensor)
+        print("The color is: " + str(color))
+        Forward(0.5*2.54)
+        color_read.append(color)
+
+    Rotate_CCW(90)
+    Forward(12.8)
+    moveForklift(1)
+    Rotate_CCW(-90)
+
+    new_distance_x = 36 - distance_x
+    Forward(new_distance_x)
+    moveForklift(-1)
+
+
+           
+
+
+
+
 
