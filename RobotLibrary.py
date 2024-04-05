@@ -50,7 +50,7 @@ def Forward(distance,speed=30,picking=False):
     mdiff.odometry_start() 
     mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False) #make sure block is False
     print("is Moving")
-    
+    say("bababooey")
     while mdiff.is_running:
         print("distance in front: ",obstacle_detect())
         if not picking and obstacle_detect()<=22.7: #and not isPicking
@@ -82,11 +82,18 @@ def Rotate_CCW(angle):
     #mdiff.odometry_start(theta_degrees_start=0) 
     #mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
     #mdiff.odometry_stop()
-    
-    a=gyro.angle()
-    while ((gyro.angle()-a)<angle):
-        motors = MoveTank(OUTPUT_A,OUTPUT_B)
-        motors.on_for_rotations(SpeedRPM(20), SpeedRPM(-20), 0.1)#angle/ang_vel+0.3) 
+    mult=0
+    if angle>0:
+        mult=1
+    else:
+        mult=-1
+    a=gyro.angle
+    motors = MoveTank(left_wheel,right_wheel)#angle/ang_vel+0.3) 
+    motors.on(SpeedRPM(5*mult), SpeedRPM(-5*mult))
+    while (abs(gyro.angle-a)<abs(angle)-10):
+        pass
+
+    motors.stop(brake=True)
     current_angle+=angle
     current_angle=clamp_angle(current_angle)  
     
@@ -106,7 +113,7 @@ def moveForklift(direction):
     #elif direction==-1:
     #    say("dropping object")
     medium_motor = MediumMotor(med_motor)
-    medium_motor.on_for_seconds(-30*direction,5)
+    medium_motor.on_for_seconds(-35*direction,8)
 
 def say(sth):
     spkr=Sound()
@@ -172,11 +179,17 @@ def getBarcodeType(bc):
             return code
     return -1
     
+main_way=inch_to_cm(54)    
 def moveToXY(new_x,new_y):
     global current_x,current_y,current_angle
-    if (current_x!=inch_to_cm(6)):
+    if (current_x<main_way):
+        Rotate_CCW(0-current_angle)
+        Forward(main_way-current_x)
+    elif (current_x>main_way):
         Rotate_CCW(180-current_angle)
-        Forward(current_x)
+        Forward(current_x-main_way)
+    if ((new_x)==inch_to_cm(6) or new_x==inch_to_cm(102)) and (new_y==inch_to_cm(-6) or new_y==inch_to_cm(114)):
+        Forward(48)
     if (new_y>current_y):
         Rotate_CCW(90-current_angle)
         Forward(new_y-current_y)
@@ -203,9 +216,10 @@ def moveToXY(new_x,new_y):
 #Rotate_CCW(-90)
 #Rotate_CCW(90)
 #Rotate_CCW(-90)
+
 moveForklift(-1)
-moveToXY(inch_to_cm(50),inch_to_cm(100))
-Rotate_CCW(-90-current_angle)
+moveToXY(inch_to_cm(36),inch_to_cm(30))
+Rotate_CCW(-90-current_angle) 
 obj_dist=obstacle_detect()
 obj_dist-=6.0
 if obj_dist>50 or obj_dist<=0.0:
@@ -213,4 +227,6 @@ if obj_dist>50 or obj_dist<=0.0:
 Forward(obj_dist,picking=True)
 moveForklift(1)
 Reverse(obj_dist)
-moveToXY(inch_to_cm(6),inch_to_cm(-6))
+moveToXY(inch_to_cm(96),inch_to_cm(12))
+
+
