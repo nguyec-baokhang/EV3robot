@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
 from ev3dev2.motor import MediumMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C ,OUTPUT_D,SpeedPercent, MoveTank, MoveDifferential, SpeedRPM
 from ev3dev2.sensor import INPUT_1, INPUT_2, INPUT_3, INPUT_4
-from ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor,GyroSensor
+from ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor, GyroSensor
 from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
 from ev3dev2.sound import Sound
+
 import time
-import os
 import math
 
+def inch_to_cm(inch):
+    return inch*2.54
+
+def clamp(val,min,max):
+    if val<min:
+        return min
+    if val>max:
+        return max
+    return val
 #outputA is left motor
 #outputB is right motor
 
@@ -20,53 +29,35 @@ class MyWheel(Wheel):
 left_wheel=OUTPUT_A
 right_wheel=OUTPUT_D
 med_motor=OUTPUT_B
-wheel_distance=143
+wheel_distance=140
 mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
 
 isPicking=False
-
-gyro = GyroSensor()
-gyro.reset()
-gyro.calibrate()
-
-def inch_to_cm(inch):
-    return inch*2.54
 
 current_x=inch_to_cm(6)
 current_y=inch_to_cm(-6)
 current_angle=90
 
-def clamp_angle(angle_deg):
-    angle_deg = angle_deg + 360.0
-    mapped_angle = angle_deg % 360.0
-    return mapped_angle
-
-def say(sth):
-    spkr=Sound()
-    spkr.speak(sth)
+gyro=GyroSensor()
+gyro.reset()
+print("start calibrate")
+gyro.calibrate()
+print("done calibrate")
 
 def updatePos(distance):
     global current_x,current_y,current_angle
     current_x+=distance*math.cos(math.radians(current_angle))
     current_y+=distance*math.sin(math.radians(current_angle))
 
-def obstacle_detect():
-    us = UltrasonicSensor(INPUT_3)
-    distance = us.distance_centimeters
-    return distance
-#Move forwards a distance (cm)
-#Stop if there is an object 12.7 cm (5 inches) infront
 #Move forwards a distance (cm)
 #Stop if there is an object 12.7 cm (5 inches) infront
 def Forward(distance,speed=30,picking=False):
     mdiff.odometry_start() 
     mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False) #make sure block is False
-    print("is Moving")
-    say("bababooey")
     while mdiff.is_running:
-        print("distance in front: ",obstacle_detect())
+        #print("distance in front: ",obstacle_detect())
         if not picking and obstacle_detect()<=22.7: #and not isPicking
-            print("stop")
+            #print("stop")
             break
         
     mdiff.stop()
@@ -74,11 +65,18 @@ def Forward(distance,speed=30,picking=False):
     updatePos(distance)
     time.sleep(0.5)
     return
-    
+
   
 #Move backwards a distance (cm)  
-def Reverse(distance):
-    mdiff.on_for_distance(SpeedRPM(30),distance*10)
+def Reverse(distance,speed=30):
+    mdiff.on_for_distance(SpeedRPM(speed),distance*10)
+    updatePos(-distance)
+    time.sleep(0.5)
+
+def clamp_angle(angle_deg):
+    angle_deg = angle_deg + 360.0
+    mapped_angle = angle_deg % 360.0
+    return mapped_angle
 
 #Rotate counter clock wise an angle (degree)
 def Rotate_CCW(angle):
@@ -103,23 +101,32 @@ def Rotate_CCW(angle):
     current_angle=clamp_angle(current_angle)  
     
     time.sleep(0.5)
-    print('rotated angle:'+str(angle))
+    #print('rotated angle:'+str(angle))
+ 
+def obstacle_detect():
+    us = UltrasonicSensor(INPUT_3)
+    distance = us.distance_centimeters
+    return distance
 
 #1 is up
 #-1 is down  
 def moveForklift(direction):
-    #if direction==1:
-    #    say("picking object")
-    #elif direction==-1:
-    #    say("dropping object")
     medium_motor = MediumMotor(med_motor)
-    medium_motor.on_for_seconds(-35*direction,8)
+    spd=0
+    if direction==1:
+        say("picking object")
+        spd=100
+        medium_motor.on_for_seconds(SpeedPercent(-spd*direction),15)
+    elif direction==-1:
+        say("dropping object")
+        spd=70
+        medium_motor.on_for_seconds(SpeedPercent(-spd*direction),15)
+        #medium_motor.stop(stop_action='coast')
 
-#not finished for forklift !!!!!    
-def moveMed(sth):
-    medium_motor = MediumMotor(med_motor)
-    medium_motor.on_for_seconds(-30,5)
 
+def say(sth):
+    spkr=Sound()
+    spkr.speak(sth)
 #read color sensor in general 
 LEFT_COLOR_SENSOR=INPUT_4
 RIGHT_COLOR_SENSOR=INPUT_2
@@ -148,6 +155,68 @@ barcodes=[  [[black,white,white,white],1],      #type 1
             [[black,black,white,white],3],      #type 3
             [[black,white,white,black],4]]      #type 4
 
+def readBarcode(input=RIGHT_COLOR_SENSOR):
+    barcode_read=[]
+    color=readBnW(input)
+    if (not color==not_bnw):
+        for i in range(4):
+            color=readBnW(input)
+            barcode_read.append(color)
+            if color==black:
+                say('Black')
+            elif color==white:
+                say('White')
+            else:
+                say ("Not black or white")
+            #mdiff.on_for_distance(SpeedRPM(-10), 1.27*10, brake=True, block=True)
+            Forward(1.27,speed=20)
+    #print(barcode_read)
+    bc_type=getBarcodeType(barcode_read)
+    return bc_type
+
+def getBarcodeType(bc):
+    code=-1
+    if not len(bc)== 4:
+        bc=[not_bnw,not_bnw,not_bnw,not_bnw]
+    for i in range(0,len(barcodes)):
+        found = True
+        for j in range(4):
+            if not (bc[j] ==barcodes[i][0][j]):
+                found=False
+                break
+        if (found):
+            code=barcodes[i][1]
+            #print('found ', str(code))
+            return code
+    return -1
+
+def read_code(input_sensor):
+    while readBnW(input_sensor)==not_bnw:
+        Forward(1,speed=10)
+    code=readBarcode(LEFT_COLOR_SENSOR)
+    sent="found code "+str(code)
+    say(sent)
+    return code
+
+def sub_task3(code_type):
+    global current_angle
+    moveForklift(1)
+    Forward(inch_to_cm(11))
+    code=read_code(LEFT_COLOR_SENSOR)
+    if code==code_type:
+        say("correct box")
+        Forward(6.35,speed=15)
+        mdiff.on_arc_right(SpeedRPM(-10), wheel_distance/2.0, 100, brake=True, block=True)
+        current_angle-=90
+        moveForklift(-1)
+        Reverse(inch_to_cm(4.5),speed=10)
+        moveForklift(1)
+        print("correct box ")
+    else:
+        say("wrong box")
+        print("wrong box ")
+        
+"------------------------------------------------Khang--------------------------"
 shelf = [[[12,12],"A1"],       #A1 shelf
          [[12,36],"A2"],       #A2 shelf
          [[60,12],"B1"],       #B1 shelf
@@ -238,7 +307,6 @@ def subtask3_subtask4():
 
            
 moving_to_shelf_subtask1_(shelf_choice,box_choice)
-
-
-
+        
+sub_task3(3)
 
