@@ -211,6 +211,7 @@ def moving_back_subtask2():
     Forward(current_distance_y)
 
 def subtask3_subtask4():
+    moveForklift(1)
     global color_read
     color_read =  []
     if box_choice > 1 and box_choice < 7:
@@ -226,10 +227,7 @@ def subtask3_subtask4():
         Forward(1.27)
         color_read.append(color)
 
-    Rotate_CCW(-90)
-    moveForklift(1)
-    Rotate_CCW(180)
-    Forward(5)
+    mdiff.on_arc_right(SpeedRPM(-10),wheel_distance/2.0,100,brake=True,block = True)
     moveForklift(-1)
     moveForklift(1)
 
