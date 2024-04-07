@@ -24,12 +24,12 @@ def clamp(val,min,max):
 #initialize wheel class
 class MyWheel(Wheel):
     def __init__(self):
-        Wheel.__init__(self, 68.8, 36) #wheel diameter is 68mm and 35mm width
+        Wheel.__init__(self, 56, 28) #big wheel diameter is 68mm and 35mm width
         
 left_wheel=OUTPUT_A
 right_wheel=OUTPUT_D
 med_motor=OUTPUT_B
-wheel_distance=136
+wheel_distance=138
 mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
 
 isPicking=False
@@ -52,21 +52,34 @@ def updatePos(distance):
 #Move forwards a distance (cm)
 #Stop if there is an object 12.7 cm (5 inches) infront
 def Forward(distance,speed=30,picking=False):
-    mdiff.odometry_start() 
+    mdiff.odometry_start(theta_degrees_start=90.0, x_pos_start=0.0, y_pos_start=0.0)
     mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False) #make sure block is False
+    init_angle=gyro.angle
+    
     while mdiff.is_running:
         #print("distance in front: ",obstacle_detect())
+        previously_traveled=abs(mdiff.y_pos_mm)/10.0
+        #print(previously_traveled)
+        if previously_traveled>=distance:
+            break
         if not picking and obstacle_detect()<=22.7: #and not isPicking
             #print("stop")
+            mdiff.stop()
+            quit()
             break
-        
+        #print(gyro.angle,'   ',init_angle)
+        if (abs(gyro.angle-init_angle)>2):
+            mdiff.stop()
+            Rotate_CCW(-init_angle+gyro.angle)
+            mdiff.on_for_distance(SpeedRPM(-speed), (distance-previously_traveled)*10, brake=True, block=False)
+            
+        #print(mdiff.y_pos_mm)
     mdiff.stop()
     mdiff.odometry_stop()
     updatePos(distance)
     time.sleep(0.5)
     return
 
-  
 #Move backwards a distance (cm)  
 def Reverse(distance,speed=30):
     mdiff.on_for_distance(SpeedRPM(speed),distance*10)
@@ -79,31 +92,37 @@ def clamp_angle(angle_deg):
     return mapped_angle
 
 #Rotate counter clock wise an angle (degree)
-def Rotate_CCW(angle):
+def Rotate_CCW(angle,speed=10):
     global current_x,current_y,current_angle
-    
+    angle=-angle
     #mdiff.odometry_start(theta_degrees_start=0) 
     #mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
     #mdiff.odometry_stop()
-    calibrate=1
-    mult=0
-    if angle>0:
-        mult=1
-    else:
-        mult=-1
     a=gyro.angle
     motors = MoveTank(left_wheel,right_wheel)#angle/ang_vel+0.3) 
-    motors.on(SpeedRPM(5*mult), SpeedRPM(-5*mult))
-    while (abs(gyro.angle-a)<abs(angle)-calibrate):
-        pass
+    passed=False
+    error=2
+    while not passed:
+        while (abs(a+angle-gyro.angle)>0):
+            print(gyro.angle,'   ',a+angle)
+            coef=1
+            if gyro.angle<a+angle:
+                coef=-1
+            if abs( (a+angle) - gyro.angle)<10:
+                coef*=0.5
+            motors.on(SpeedRPM(speed*coef), SpeedRPM(-speed*coef))
+        motors.stop(brake=True)
+        time.sleep(0.5)
+        if abs(a+angle-gyro.angle)<error:
+            passed=True
 
-    motors.stop(brake=True)
+    #motors.stop(brake=True)
     current_angle+=angle
     current_angle=clamp_angle(current_angle)  
     
     time.sleep(0.5)
     #print('rotated angle:'+str(angle))
- 
+
 def obstacle_detect():
     us = UltrasonicSensor(INPUT_3)
     distance = us.distance_centimeters
@@ -267,7 +286,7 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
                 Forward(102*2.54-current_x-10)
                 Rotate_CCW(-90)
                 Forward(distance_y)
-    Rotate_CCW(180)
+    #Rotate_CCW(180)
     global current_distance_x
     global current_distance_y
     current_distance_x = distance_x
@@ -305,3 +324,4 @@ def subtask3_subtask4():
     new_distance_x = 36 - distance_x
     Forward(new_distance_x*2.54)
     moveForklift(-1)
+
