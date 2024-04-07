@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from ev3dev2.motor import MediumMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C ,OUTPUT_D,SpeedPercent, MoveTank, MoveDifferential, SpeedRPM
+from ev3dev2.motor import MediumMotor, OUTPUT_A, OUTPUT_B, OUTPUT_C ,OUTPUT_D,SpeedPercent, MoveTank, MoveDifferential, SpeedRPM, follow_for_ms
 from ev3dev2.sensor import INPUT_1, INPUT_2, INPUT_3, INPUT_4
 from ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor, GyroSensor
 from ev3dev2.led import Leds
@@ -24,12 +24,12 @@ def clamp(val,min,max):
 #initialize wheel class
 class MyWheel(Wheel):
     def __init__(self):
-        Wheel.__init__(self, 68, 35) #wheel diameter is 68mm and 35mm width
+        Wheel.__init__(self, 68.8, 36) #wheel diameter is 68mm and 35mm width
         
 left_wheel=OUTPUT_A
 right_wheel=OUTPUT_D
 med_motor=OUTPUT_B
-wheel_distance=140
+wheel_distance=136
 mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
 
 isPicking=False
@@ -85,6 +85,7 @@ def Rotate_CCW(angle):
     #mdiff.odometry_start(theta_degrees_start=0) 
     #mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
     #mdiff.odometry_stop()
+    calibrate=1
     mult=0
     if angle>0:
         mult=1
@@ -92,8 +93,8 @@ def Rotate_CCW(angle):
         mult=-1
     a=gyro.angle
     motors = MoveTank(left_wheel,right_wheel)#angle/ang_vel+0.3) 
-    motors.on(SpeedRPM(10*mult), SpeedRPM(-10*mult))
-    while (abs(gyro.angle-a)<abs(angle)-10):
+    motors.on(SpeedRPM(5*mult), SpeedRPM(-5*mult))
+    while (abs(gyro.angle-a)<abs(angle)-calibrate):
         pass
 
     motors.stop(brake=True)
@@ -119,9 +120,9 @@ def moveForklift(direction):
         medium_motor.on_for_seconds(SpeedPercent(-spd*direction),15)
     elif direction==-1:
         say("dropping object")
-        spd=70
+        spd=20
         medium_motor.on_for_seconds(SpeedPercent(-spd*direction),15)
-        #medium_motor.stop(stop_action='coast')
+        #medium_motor.stop()
 
 
 def say(sth):
@@ -198,20 +199,24 @@ def read_code(input_sensor):
     say(sent)
     return code
 
-def sub_task3(code_type):
-    global current_angle
+def sub_task3_task4(code_type):
+    global current_angle, current_x
     moveForklift(1)
     Forward(inch_to_cm(11))
     code=read_code(LEFT_COLOR_SENSOR)
     if code==code_type:
         say("correct box")
-        Forward(6.35,speed=15)
-        mdiff.on_arc_right(SpeedRPM(-10), wheel_distance/2.0, 100, brake=True, block=True)
+        Forward(5.5,speed=15)
+        mdiff.on_arc_right(SpeedRPM(-10), wheel_distance/2.0, 0.25*math.pi*wheel_distance, brake=True, block=True)
         current_angle-=90
         moveForklift(-1)
         Reverse(inch_to_cm(4.5),speed=10)
         moveForklift(1)
         print("correct box ")
+        Rotate_CCW(90)
+        Forward(102*2.54 - current_x)
+        moveForklift(-1)
+        
     else:
         say("wrong box")
         print("wrong box ")
@@ -229,9 +234,6 @@ shelf = [[[12,12],"A1"],       #A1 shelf
 cp = [6,-6]
 angle = 90
 
-print(shelf[1][1])
-shelf_choice = "A1"
-box_choice = 3
 L_box = 36/6
 distance_x = 0
 distance_y = 0
@@ -242,7 +244,7 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
             if box_choice >= 1 and box_choice <7:
                 
                 distance_y = (shelf[i][0][1]-cp[1])*2.54
-                distance_x = (box_choice*L_box+3)*2.54
+                distance_x = ((box_choice-1)*L_box+6)*2.54
                 current_x = distance_x + cp[0]
                 current_y = distance_y + cp[1]
                 Forward(distance_y)
@@ -254,18 +256,18 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
                 Forward(distance_y)
             else:
                 
-                distance_y = (shelf[i][0][1]-cp[1]+12)*2.54
-                distance_x = (box_choice-7+3)*2.54
+                distance_y = (shelf[i][0][1]-cp[1]+18)*2.54
+                distance_x = ((box_choice-7)*L_box+6)*2.54
                 current_x = distance_x + cp[0]
                 current_y = distance_y + cp[1]
                 Forward(distance_y)
                 Rotate_CCW(-90)
                 Forward(distance_x)
                 time.sleep(5)
-                Forward(102*2.54-current_x)
+                Forward(102*2.54-current_x-10)
                 Rotate_CCW(-90)
                 Forward(distance_y)
-
+    Rotate_CCW(180)
     global current_distance_x
     global current_distance_y
     current_distance_x = distance_x
@@ -273,11 +275,11 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
 
 def moving_back_subtask2():
     Rotate_CCW(-180)
-    Forward(current_distance_y)
+    Forward(12*2.54)
     Rotate_CCW(90)
     Forward((102-6)*2.54)
     Rotate_CCW(90)
-    Forward(current_distance_y)
+    Forward(12*2.54)
 
 def subtask3_subtask4():
     moveForklift(1)
@@ -303,10 +305,3 @@ def subtask3_subtask4():
     new_distance_x = 36 - distance_x
     Forward(new_distance_x*2.54)
     moveForklift(-1)
-
-
-           
-moving_to_shelf_subtask1_(shelf_choice,box_choice)
-        
-sub_task3(3)
-
