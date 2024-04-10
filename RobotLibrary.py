@@ -38,7 +38,7 @@ current_x=inch_to_cm(6)
 current_y=inch_to_cm(-6)
 current_angle=90
 
-gyro=GyroSensor()
+gyro=GyroSensor(INPUT_2)
 gyro.reset()
 print("start calibrate")
 gyro.calibrate()
@@ -52,26 +52,28 @@ def updatePos(distance):
 #Move forwards a distance (cm)
 #Stop if there is an object 12.7 cm (5 inches) infront
 def Forward(distance,speed=30,picking=False):
+    gyro.calibrate()
+    init_angle=gyro.angle
     mdiff.odometry_start(theta_degrees_start=90.0, x_pos_start=0.0, y_pos_start=0.0)
     mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False) #make sure block is False
-    init_angle=gyro.angle
     
     while mdiff.is_running:
         #print("distance in front: ",obstacle_detect())
-        previously_traveled=abs(mdiff.y_pos_mm)/10.0
-        #print(previously_traveled)
-        if previously_traveled>=distance:
-            break
+        # previously_traveled=abs(mdiff.y_pos_mm)/10.0
+        # #print(previously_traveled)
+        # print(previously_traveled)
+        # if previously_traveled>=distance:
+        #     break
         if not picking and obstacle_detect()<=22.7: #and not isPicking
             #print("stop")
             mdiff.stop()
             quit()
             break
         #print(gyro.angle,'   ',init_angle)
-        if (abs(gyro.angle-init_angle)>2):
-            mdiff.stop()
-            Rotate_CCW(-init_angle+gyro.angle)
-            mdiff.on_for_distance(SpeedRPM(-speed), (distance-previously_traveled)*10, brake=True, block=False)
+        # if (abs(gyro.angle-init_angle)>10):
+        #     mdiff.stop()
+        #     Rotate_CCW(-init_angle+gyro.angle)
+        #     mdiff.on_for_distance(SpeedRPM(-speed), (distance-previously_traveled)*10.0, brake=True, block=False)
             
         #print(mdiff.y_pos_mm)
     mdiff.stop()
@@ -92,36 +94,42 @@ def clamp_angle(angle_deg):
     return mapped_angle
 
 #Rotate counter clock wise an angle (degree)
-def Rotate_CCW(angle,speed=10):
+def Rotate_CCW(angle,speed=20):
     global current_x,current_y,current_angle
+    time.sleep(2.0)
+    gyro.reset()
+    gyro.calibrate()
     angle=-angle
+    print('bruh,',angle)
     #mdiff.odometry_start(theta_degrees_start=0) 
     #mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
     #mdiff.odometry_stop()
     a=gyro.angle
     motors = MoveTank(left_wheel,right_wheel)#angle/ang_vel+0.3) 
     passed=False
-    error=2
+    error=0
     while not passed:
         while (abs(a+angle-gyro.angle)>0):
             print(gyro.angle,'   ',a+angle)
             coef=1
             if gyro.angle<a+angle:
                 coef=-1
-            if abs( (a+angle) - gyro.angle)<10:
-                coef*=0.5
+            #if abs( (a+angle) - gyro.angle)<10:
+            coef*=abs((a+angle) - gyro.angle)/50.0+0.5
             motors.on(SpeedRPM(speed*coef), SpeedRPM(-speed*coef))
         motors.stop(brake=True)
-        time.sleep(0.5)
-        if abs(a+angle-gyro.angle)<error:
+        time.sleep(2.0)
+        print(gyro.angle,'   ',a+angle)
+        if abs(a+angle-gyro.angle)<=error:
             passed=True
-
+    print(gyro.angle,'   ',a+angle)
     #motors.stop(brake=True)
     current_angle+=angle
     current_angle=clamp_angle(current_angle)  
     
     time.sleep(0.5)
     #print('rotated angle:'+str(angle))
+
 
 def obstacle_detect():
     us = UltrasonicSensor(INPUT_3)
@@ -324,4 +332,3 @@ def subtask3_subtask4():
     new_distance_x = 36 - distance_x
     Forward(new_distance_x*2.54)
     moveForklift(-1)
-
