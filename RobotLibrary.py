@@ -5,6 +5,7 @@ from ev3dev2.sensor.lego import ColorSensor, UltrasonicSensor, GyroSensor
 from ev3dev2.led import Leds
 from ev3dev2.wheel import EV3Tire,Wheel
 from ev3dev2.sound import Sound
+from ev3dev2.console import Console
 
 import time
 import math
@@ -39,9 +40,9 @@ current_angle=90
 
 gyro=GyroSensor()
 gyro.reset()
-print("start calibrate")
+#print("start calibrate")
 gyro.calibrate()
-print("done calibrate")
+#print("done calibrate")
 
 def updatePos(distance):
     global current_x,current_y,current_angle
@@ -49,53 +50,13 @@ def updatePos(distance):
     current_y+=distance*math.sin(math.radians(current_angle))
 
 #Move forwards a distance (cm)
-#Stop if there is an object 12.7 cm (5 inches) infront
-#Move forwards a distance (cm)
-#Stop if there is an object 12.7 cm (5 inches) infront
 def Forward(distance,speed=40,picking=False):
-    # gyro.reset()
-    # gyro.calibrate()
-    # init_angle=0
-    # mdiff.odometry_start(theta_degrees_start=90.0, x_pos_start=0.0, y_pos_start=0.0)
-    # mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False) #make sure block is False
-    
-    # while mdiff.is_running:
-    #     #print("distance in front: ",obstacle_detect())
-    #     previously_traveled=abs(mdiff.y_pos_mm)/10.0
-    #     print(previously_traveled,'  cm')
-    #     # print(previously_traveled)
-    #     # if previously_traveled>=distance:
-    #     #     break
-    #     if not picking and obstacle_detect()<=22.7: #and not isPicking
-    #         #print("stop")
-    #         mdiff.stop()
-    #         quit()
-    #         break
-    #     #print(gyro.angle,'   ',init_angle)
-    #     if (gyro.angle-init_angle>0):
-    #         mdiff.stop()
-    #         # Rotate_CCW(-init_angle+gyro.angle,speed=20)
-    #         # gyro.reset()
-    #         # gyro.calibrate()
-    #         # mdiff.on_for_distance(SpeedRPM(-speed), (distance-previously_traveled)*10.0, brake=True, block=False)
-    #         init_angle = gyro.angle
-    #         mdiff.on_for_seconds(SpeedRPM(-39.9),SpeedPercent(-40),0.5)
-    #         #mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False)
-    #     if (gyro.angle-init_angle<0):
-    #         mdiff.stop()
-    #         # Rotate_CCW(-init_angle+gyro.angle,speed=20)
-    #         init_angle = gyro.angle
-    #         mdiff.on_for_seconds(SpeedRPM(-40),SpeedRPM(-39.9),0.5)
-    #         #mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False)
-    #     #print(mdiff.y_pos_mm)
-    # mdiff.stop()
-    # mdiff.odometry_stop()
-    # updatePos(distance)
+    updatePos(distance)
     # time.sleep(0.5)
 
     vel= 15.36   #cm per second
     motors = MoveTank(left_wheel,right_wheel)
-    motors.on_for_seconds(SpeedPercent(-30), SpeedPercent(-30), distance/vel)
+    motors.on_for_seconds(SpeedPercent(-30.02), SpeedPercent(-29.98), distance/vel)
     return
 
   
@@ -205,6 +166,7 @@ def readBarcode(input=RIGHT_COLOR_SENSOR):
     barcode_read=[]
     color=readBnW(input)
     if (not color==not_bnw):
+        Forward_Subtask3_Subtask4(0.2,speed=5)
         for i in range(4):
             color=readBnW(input)
             barcode_read.append(color)
@@ -215,7 +177,7 @@ def readBarcode(input=RIGHT_COLOR_SENSOR):
             else:
                 say ("Not black or white")
             #mdiff.on_for_distance(SpeedRPM(-10), 1.27*10, brake=True, block=True)
-            Forward_Subtask3_Subtask4(1.5,speed=15)
+            Forward_Subtask3_Subtask4(1.27,speed=10)
     #print(barcode_read)
     bc_type=getBarcodeType(barcode_read)
     return bc_type
@@ -238,7 +200,7 @@ def getBarcodeType(bc):
 
 def read_code(input_sensor):
     while readBnW(input_sensor)==not_bnw:
-        Forward_Subtask3_Subtask4(1,speed=10)
+        Forward_Subtask3_Subtask4(1.2,speed=5)
     code=readBarcode(LEFT_COLOR_SENSOR)
     sent="found code "+str(code)
     say(sent)
@@ -247,8 +209,9 @@ def read_code(input_sensor):
 def sub_task3_task4(code_type):
     global current_angle, current_x
     moveForklift(1)
-    Forward_Subtask3_Subtask4(inch_to_cm(13))
+    Forward(inch_to_cm(13))
     code=read_code(LEFT_COLOR_SENSOR)
+    
     if code==code_type:
         say("correct box")
         print("correct box ")
@@ -256,15 +219,16 @@ def sub_task3_task4(code_type):
     else:
         say("wrong box")
         print("wrong box ")
-
+        
     Reverse(3.0,speed=15)
-    mdiff.on_arc_right(SpeedRPM(-25), wheel_distance/2.0, 0.35*math.pi*wheel_distance, brake=True, block=True)
-    current_angle-=88
+    mdiff.on_arc_right(SpeedRPM(-25), wheel_distance/2.0, 0.37*math.pi*wheel_distance, brake=True, block=True)
+    current_angle-=90
     moveForklift(-1)
     Reverse(inch_to_cm(4.5),speed=10)
     moveForklift(1)
-    Rotate_CCW(88)
-    Forward_Subtask3_Subtask4(36*2.54 - current_x)
+    Forward_Subtask3_Subtask4(inch_to_cm(2),speed=10)
+    Rotate_CCW(85)
+    Forward(36*2.54 - current_x)
     moveForklift(-1)
         
 def Forward_Subtask3_Subtask4(distance,speed=40,picking=False):
@@ -327,28 +291,28 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
         if shelf_choice == shelf[i][1]: 
             if box_choice >= 1 and box_choice <7:
                 
-                distance_y = (shelf[i][0][1]-cp[1])*2.54
-                distance_x = ((box_choice-1)*L_box+6)*2.54
+                distance_y = (shelf[i][0][1]-cp[1]-2)*2.54
+                distance_x = ((box_choice-1)*L_box+10)*2.54
                 current_x = distance_x + cp[0]
                 current_y = distance_y + cp[1]
                 Forward(distance_y)
                 Rotate_CCW(-87)
                 Forward(distance_x)
                 time.sleep(5)
-                Forward(102*2.54-current_x-10)
+                Forward(102*2.54-current_x+2)
                 Rotate_CCW(-87)
                 Forward(distance_y)
             else:
                 
-                distance_y = (shelf[i][0][1]-cp[1]+18)*2.54
-                distance_x = ((box_choice-7)*L_box+6)*2.54
+                distance_y = (shelf[i][0][1]-cp[1]+18-2)*2.54
+                distance_x = ((box_choice-7)*L_box+10)*2.54
                 current_x = distance_x + cp[0]
                 current_y = distance_y + cp[1]
                 Forward(distance_y)
                 Rotate_CCW(-87)
                 Forward(distance_x)
                 time.sleep(5)
-                Forward(102*2.54-current_x-10)
+                Forward(102*2.54-current_x+2)
                 Rotate_CCW(-87)
                 Forward(distance_y)
     #Rotate_CCW(174)
