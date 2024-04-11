@@ -2,4 +2,5 @@
 import RobotLibrary as rl
 import time
 
-rl.Rotate_CCW(88)
+r = rl.inch_to_cm(12)
+rl.Forward(r)

@@ -24,21 +24,20 @@ def clamp(val,min,max):
 #initialize wheel class
 class MyWheel(Wheel):
     def __init__(self):
-        Wheel.__init__(self, 56, 28) #big wheel diameter is 68mm and 35mm width
+        Wheel.__init__(self, 56, 26) #wheel diameter is 68mm and 35mm width
         
 left_wheel=OUTPUT_A
 right_wheel=OUTPUT_D
 med_motor=OUTPUT_B
-wheel_distance=138
+wheel_distance=136
 mdiff = MoveDifferential(left_wheel, right_wheel, MyWheel, wheel_distance)
-
 isPicking=False
 
 current_x=inch_to_cm(6)
 current_y=inch_to_cm(-6)
 current_angle=90
 
-gyro=GyroSensor(INPUT_2)
+gyro=GyroSensor()
 gyro.reset()
 print("start calibrate")
 gyro.calibrate()
@@ -51,16 +50,19 @@ def updatePos(distance):
 
 #Move forwards a distance (cm)
 #Stop if there is an object 12.7 cm (5 inches) infront
-def Forward(distance,speed=30,picking=False):
+#Move forwards a distance (cm)
+#Stop if there is an object 12.7 cm (5 inches) infront
+def Forward(distance,speed=40,picking=False):
+    gyro.reset()
     gyro.calibrate()
-    init_angle=gyro.angle
+    init_angle=0
     mdiff.odometry_start(theta_degrees_start=90.0, x_pos_start=0.0, y_pos_start=0.0)
     mdiff.on_for_distance(SpeedRPM(-speed), distance*10, brake=True, block=False) #make sure block is False
     
     while mdiff.is_running:
         #print("distance in front: ",obstacle_detect())
-        # previously_traveled=abs(mdiff.y_pos_mm)/10.0
-        # #print(previously_traveled)
+        previously_traveled=abs(mdiff.y_pos_mm)/10.0
+        print(previously_traveled,'  cm')
         # print(previously_traveled)
         # if previously_traveled>=distance:
         #     break
@@ -70,10 +72,12 @@ def Forward(distance,speed=30,picking=False):
             quit()
             break
         #print(gyro.angle,'   ',init_angle)
-        # if (abs(gyro.angle-init_angle)>10):
-        #     mdiff.stop()
-        #     Rotate_CCW(-init_angle+gyro.angle)
-        #     mdiff.on_for_distance(SpeedRPM(-speed), (distance-previously_traveled)*10.0, brake=True, block=False)
+        if (abs(gyro.angle-init_angle)>0):
+            mdiff.stop()
+            Rotate_CCW(-init_angle+gyro.angle,speed=20)
+            gyro.reset()
+            gyro.calibrate()
+            mdiff.on_for_distance(SpeedRPM(-speed), (distance-previously_traveled)*10.0, brake=True, block=False)
             
         #print(mdiff.y_pos_mm)
     mdiff.stop()
@@ -82,6 +86,7 @@ def Forward(distance,speed=30,picking=False):
     time.sleep(0.5)
     return
 
+  
 #Move backwards a distance (cm)  
 def Reverse(distance,speed=30):
     mdiff.on_for_distance(SpeedRPM(speed),distance*10)
@@ -94,13 +99,15 @@ def clamp_angle(angle_deg):
     return mapped_angle
 
 #Rotate counter clock wise an angle (degree)
+
+#Rotate counter clock wise an angle (degree)
 def Rotate_CCW(angle,speed=20):
     global current_x,current_y,current_angle
     time.sleep(2.0)
     gyro.reset()
     gyro.calibrate()
     angle=-angle
-    print('bruh,',angle)
+    #print('bruh,',angle)
     #mdiff.odometry_start(theta_degrees_start=0) 
     #mdiff.turn_degrees(SpeedRPM(20),(angle),brake=True)
     #mdiff.odometry_stop()
@@ -110,7 +117,7 @@ def Rotate_CCW(angle,speed=20):
     error=0
     while not passed:
         while (abs(a+angle-gyro.angle)>0):
-            print(gyro.angle,'   ',a+angle)
+            #print(gyro.angle,'   ',a+angle)
             coef=1
             if gyro.angle<a+angle:
                 coef=-1
@@ -119,18 +126,17 @@ def Rotate_CCW(angle,speed=20):
             motors.on(SpeedRPM(speed*coef), SpeedRPM(-speed*coef))
         motors.stop(brake=True)
         time.sleep(2.0)
-        print(gyro.angle,'   ',a+angle)
+        #print(gyro.angle,'   ',a+angle)
         if abs(a+angle-gyro.angle)<=error:
             passed=True
-    print(gyro.angle,'   ',a+angle)
+    #print(gyro.angle,'   ',a+angle)
     #motors.stop(brake=True)
     current_angle+=angle
     current_angle=clamp_angle(current_angle)  
     
     time.sleep(0.5)
     #print('rotated angle:'+str(angle))
-
-
+ 
 def obstacle_detect():
     us = UltrasonicSensor(INPUT_3)
     distance = us.distance_centimeters
@@ -275,11 +281,11 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
                 current_x = distance_x + cp[0]
                 current_y = distance_y + cp[1]
                 Forward(distance_y)
-                Rotate_CCW(-90)
+                Rotate_CCW(-87)
                 Forward(distance_x)
                 time.sleep(5)
                 Forward(102*2.54-current_x-10)
-                Rotate_CCW(-90)
+                Rotate_CCW(-87)
                 Forward(distance_y)
             else:
                 
@@ -288,13 +294,13 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
                 current_x = distance_x + cp[0]
                 current_y = distance_y + cp[1]
                 Forward(distance_y)
-                Rotate_CCW(-90)
+                Rotate_CCW(-87)
                 Forward(distance_x)
                 time.sleep(5)
                 Forward(102*2.54-current_x-10)
-                Rotate_CCW(-90)
+                Rotate_CCW(-87)
                 Forward(distance_y)
-    #Rotate_CCW(180)
+    Rotate_CCW(180)
     global current_distance_x
     global current_distance_y
     current_distance_x = distance_x
@@ -303,9 +309,9 @@ def moving_to_shelf_subtask1_(shelf_choice,box_choice):
 def moving_back_subtask2():
     Rotate_CCW(-180)
     Forward(12*2.54)
-    Rotate_CCW(90)
+    Rotate_CCW(87)
     Forward((102-6)*2.54)
-    Rotate_CCW(90)
+    Rotate_CCW(87)
     Forward(12*2.54)
 
 def subtask3_subtask4():
